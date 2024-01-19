@@ -84,6 +84,7 @@ else
   RUN_FN=${WORKDIR}/run_gen.py
 fi
 
+
 CUDA_VISIBLE_DEVICES=${GPU} \
   python ${RUN_FN}  ${MULTI_TASK_AUG}   \
   --do_train --do_eval --do_eval_bleu --do_test  \
