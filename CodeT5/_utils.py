@@ -229,6 +229,28 @@ def read_concode_examples(filename, data_num):
                 break
     return examples
 
+def read_pretrain_examples(filename, data_num):
+    """Read examples from filename."""
+    examples = []
+    with open(filename, encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            line = line.strip()
+            js = json.loads(line)
+            if 'idx' not in js:
+                js['idx'] = idx
+            code = ' '.join(js['code_tokens']).replace('\n', ' ')
+            code = ' '.join(code.strip().split())
+            examples.append(
+                Example(
+                    idx=idx,
+                    source='<DENOISE>' + code, # Add denoise task.
+                    target=code, # Set target to code.
+                )
+            )
+            if idx + 1 == data_num:
+                break
+    return examples
+
 
 def read_summarize_examples(filename, data_num):
     """Read examples from filename."""

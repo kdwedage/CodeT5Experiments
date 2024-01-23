@@ -216,8 +216,9 @@ def get_filenames(data_root, task, sub_task, split=''):
 
 
 def read_examples(filename, data_num, task):
+    logger.warning('Reading pretraining examples, from summarization dataset.')
     read_example_dict = {
-        'summarize': read_summarize_examples,
+        'summarize': read_pretrain_examples, # read_summarize_examples
         'refine': read_refine_examples,
         'translate': read_translate_examples,
         'concode': read_concode_examples,
