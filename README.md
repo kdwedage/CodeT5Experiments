@@ -10,8 +10,10 @@
 	- ModuleNotFoundError: No module named 'distutils.util'
 		- apt install python3.8-distutils 
 - Add the code corruption function to the run\_generation script. Verify this works. Loading existing checkpoint.
+	- Denosing code requires torch 1.13.1, whereas CodeT5 requires 1.7.1, therefore updaing to 1.13.1
 	- Add denoise tag. Added to \_utils.py. 
 	- Running pretraining test, need to verify that we are using new examples and not cache.
 	- Make sure the source ids and target ids look correct.
 	- Using breakpoint.
 - Add the DFG and AST code to the train.py script.
+	- Add <DENOISE>, <AST>, <DFG> to tokenizer

@@ -2,6 +2,7 @@
 
 import random
 import numpy as np
+import torch
 
 def add_noise(code_input, tokenizer):
     mask_frac = 0.35
