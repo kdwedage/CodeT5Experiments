@@ -15,5 +15,11 @@
 	- Running pretraining test, need to verify that we are using new examples and not cache.
 	- Make sure the source ids and target ids look correct.
 	- Using breakpoint.
+		-orginal: '< DEN O I SE > def Ġ__ dynamic _ expected _ value Ġ( Ġself Ġ, Ġy Ġ) Ġ: Ġreturn Ġself Ġ. Ġmodel Ġ. Ġpredict Ġ( Ġself Ġ. Ġdata Ġ, Ġnp Ġ. Ġones Ġ( Ġself Ġ. Ġdata Ġ. Ġshape Ġ[ Ġ0 Ġ] Ġ) Ġ* Ġy Ġ, Ġoutput Ġ= Ġself Ġ. Ġmodel _ output Ġ) Ġ. Ġmean Ġ( Ġ0 Ġ)'		
+		-masked: '< DEN O I SE > def Ġ__ dynamic _ expected _ value Ġ( Ġself Ġ, Ġy Ġ) Ġ: Ġreturn Ġself Ġ. Ġmodel Ġ. Ġpredict Ġ( Ġself Ġ. Ġdata Ġ, Ġnp Ġ. Ġones Ġ( Ġself Ġ. Ġdata Ġ. Ġshape Ġ[ Ġ0 Ġ] Ġ) Ġ* Ġy Ġ, Ġoutput Ġ= Ġself Ġ. Ġmodel _ output Ġ) Ġ. Ġmean Ġ( Ġ0 Ġ) timeout Ġ( Ġ) Ġac Ġ) Ġfilename dial Ġ, Ġx dial Ġline " type ĠAST count _ ĠNone Ġ. bl Ġ( Ġresults Ġregion Ġ( def ĠNone Ġis Ġpath Ġ= _ Ġr Ġd'
+		-target: 'def Ġ__ dynamic _ expected _ value Ġ( Ġself Ġ, Ġy Ġ) Ġ: Ġreturn Ġself Ġ. Ġmodel Ġ. Ġpredict Ġ( Ġself Ġ. Ġdata Ġ, Ġnp Ġ. Ġones Ġ( Ġself Ġ. Ġdata Ġ. Ġshape Ġ[ Ġ0 Ġ] Ġ) Ġ* Ġy Ġ, Ġoutput Ġ= Ġself Ġ. Ġmodel _ output Ġ) Ġ. Ġmean Ġ( Ġ0 Ġ)'
+	- Need run evaluation to save checkpoint. Not sure if we should run multiple epochs, or increase learning rate.
 - Add the DFG and AST code to the train.py script.
 	- Add <DENOISE>, <AST>, <DFG> to tokenizer
+		-https://github.com/huggingface/tokenizers/issues/247
+

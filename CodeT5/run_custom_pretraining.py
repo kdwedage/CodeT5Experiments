@@ -175,6 +175,11 @@ def main():
     set_dist(args)
     set_seed(args)
     config, model, tokenizer = build_or_load_gen_model(args)
+
+    special_tokens_dict = {'additional_special_tokens': ['<DENOISE>', '<AST>', '<DFG>']}
+    num_added_toks = tokenizer.add_special_tokens(special_tokens_dict, replace_additional_special_tokens=False)
+    model.resize_token_embeddings(len(tokenizer))
+
     model.to(args.device)
     if args.n_gpu > 1:
         # for DataParallel
@@ -227,7 +232,7 @@ def main():
                 batch = tuple(t.to(args.device) for t in batch)
                 
                 source_ids, target_ids = batch
-
+                
                 # Add noise to code input.
                 source_ids = add_noise(source_ids, tokenizer)
                 source_mask = source_ids.ne(tokenizer.pad_token_id)
