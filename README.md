@@ -22,4 +22,5 @@
 - Add the DFG and AST code to the train.py script.
 	- Add <DENOISE>, <AST>, <DFG> to tokenizer
 		-https://github.com/huggingface/tokenizers/issues/247
+	- Git clone tree-sitter for each language, add the DFG and AST code to the \_utils.
 

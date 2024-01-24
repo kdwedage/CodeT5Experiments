@@ -1,4 +1,14 @@
 import json
+import sys
+from tree_sitter import Language, Parser
+
+sys.path.append('/home/CodeT5/parser/')
+from DFG import DFG_python
+from parser_utils import (remove_comments_and_docstrings,
+                   tree_to_token_index,
+                   index_to_code_token,
+                   tree_to_variable_index,
+                   tree_to_token_nodes)
 
 
 def add_lang_by_task(target_str, task, sub_task):
@@ -240,6 +250,44 @@ def read_pretrain_examples(filename, data_num):
                 js['idx'] = idx
             code = ' '.join(js['code_tokens']).replace('\n', ' ')
             code = ' '.join(code.strip().split())
+
+            dfg_function={
+            'python':DFG_python
+            }
+            
+            parsers={}        
+            for lang in dfg_function:
+                LANGUAGE = Language('/home/CodeT5/parser/my-languages2.so', lang)
+                parser = Parser()
+                parser.set_language(LANGUAGE) 
+                parser = [parser,dfg_function[lang]]    
+                parsers[lang]= parser
+
+
+            
+            # Add AST.
+            tree = parsers['python'][0].parse(bytes(js['code'],'utf8')) 
+            root_node = tree.root_node
+            ast = root_node.sexp()
+
+            # DFG.
+            ast_token_nodes = tree_to_token_nodes(root_node)
+            tokens_index = [(node.start_point, node.end_point) for node in ast_token_nodes]
+            code=code.split('\n')
+            code_tokens=[index_to_code_token(x,code) for x in tokens_index] 
+            index_to_code={index:(idx,code_) for idx,(index,code_) in enumerate(zip(tokens_index,code_tokens))}
+    
+            try:
+                dfg,_ = DFG_python(root_node,index_to_code,{}) 
+            except Exception as e:
+                dfg = []
+                print(str(e))
+            for d in dfg:
+                assert (d[2]=='comesFrom' or d[2]=='computedFrom')
+            dfg = [(d[1], d[4]) for d in dfg if (len(d[4])>0)] # left comes from right
+            dfg = [(code_tokens[int(x)] + '_' + str(x), [code_tokens[z] + '_' + str(z) for z in y]) for x,y in dfg]
+
+            code += '<DFG>' + dfg + '<AST>' + ast
             examples.append(
                 Example(
                     idx=idx,
