@@ -23,4 +23,6 @@
 	- Add <DENOISE>, <AST>, <DFG> to tokenizer
 		-https://github.com/huggingface/tokenizers/issues/247
 	- Git clone tree-sitter for each language, add the DFG and AST code to the \_utils.
+	- Average source length with DFG and AST is 955, max source length 12057
+	- probably need to do preorder traversal to decrease AST size.
 
