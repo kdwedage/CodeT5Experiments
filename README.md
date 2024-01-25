@@ -25,4 +25,6 @@
 	- Git clone tree-sitter for each language, add the DFG and AST code to the \_utils.
 	- Average source length with DFG and AST is 955, max source length 12057
 	- probably need to do preorder traversal to decrease AST size.
-
+	- Currently the pretraining is use CodeSearchNet python which only has 251k examples, which may be insufficient for pretraining. (Let's see the test loss).
+	- Ran out of memory when running eval bleu for dev set.
+	- Also need to set source and target lengths to larger (512).
