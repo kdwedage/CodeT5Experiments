@@ -248,8 +248,8 @@ def read_pretrain_examples(filename, data_num):
             js = json.loads(line)
             if 'idx' not in js:
                 js['idx'] = idx
-            code = ' '.join(js['code_tokens']).replace('\n', ' ')
-            code = ' '.join(code.strip().split())
+            unintended_code = ' '.join(js['code_tokens']).replace('\n', ' ')
+            unintended_code = ' '.join(unintended_code.strip().split())
 
             dfg_function={
             'python':DFG_python
@@ -262,19 +262,18 @@ def read_pretrain_examples(filename, data_num):
                 parser.set_language(LANGUAGE) 
                 parser = [parser,dfg_function[lang]]    
                 parsers[lang]= parser
-
-
             
             # Add AST.
-            tree = parsers['python'][0].parse(bytes(js['code'],'utf8')) 
+            original_code = js['code']
+            tree = parsers['python'][0].parse(bytes(original_code,'utf8')) 
             root_node = tree.root_node
             ast = root_node.sexp()
 
             # DFG.
             ast_token_nodes = tree_to_token_nodes(root_node)
             tokens_index = [(node.start_point, node.end_point) for node in ast_token_nodes]
-            code=code.split('\n')
-            code_tokens=[index_to_code_token(x,code) for x in tokens_index] 
+            original_code=original_code.split('\n')
+            code_tokens=[index_to_code_token(x,original_code) for x in tokens_index] 
             index_to_code={index:(idx,code_) for idx,(index,code_) in enumerate(zip(tokens_index,code_tokens))}
     
             try:
@@ -285,14 +284,24 @@ def read_pretrain_examples(filename, data_num):
             for d in dfg:
                 assert (d[2]=='comesFrom' or d[2]=='computedFrom')
             dfg = [(d[1], d[4]) for d in dfg if (len(d[4])>0)] # left comes from right
-            dfg = [(code_tokens[int(x)] + '_' + str(x), [code_tokens[z] + '_' + str(z) for z in y]) for x,y in dfg]
 
-            code += '<DFG>' + dfg + '<AST>' + ast
+            # Format: (indentifier_count)
+            count = {}
+            new_mapping = []
+            for i in code_tokens:
+                if i in count:
+                    count[i] += 1
+                else:
+                    count[i] = 0
+                new_mapping.append(i + '_' + str(count[i]))
+            dfg = [(new_mapping[int(x)], [new_mapping[z] for z in y]) for x,y in dfg]
+            
+            unintended_code += '<DFG>' + str(dfg) + '<AST>' + ast
             examples.append(
                 Example(
                     idx=idx,
-                    source='<DENOISE>' + code, # Add denoise task.
-                    target=code, # Set target to code.
+                    source='<DENOISE>' + unintended_code, # Add denoise task.
+                    target=unintended_code, # Set target to code.
                 )
             )
             if idx + 1 == data_num:

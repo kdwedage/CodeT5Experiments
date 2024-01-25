@@ -33,7 +33,7 @@ def get_args_by_task_model(task, sub_task, model_tag):
         # [TOKENIZE] avg src len: 136, avg trg len: 12, max src len: 3016, max trg len: 177
         src_len = 256
         trg_len = 128
-        epoch = 1 # Set for pretraining.
+        epoch = 5 # Set for pretraining.
         #epoch = 15
         patience = 2
     elif task == 'refine':
