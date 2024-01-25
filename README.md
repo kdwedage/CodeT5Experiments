@@ -28,4 +28,11 @@
 	- Currently the pretraining is use CodeSearchNet python which only has 251k examples, which may be insufficient for pretraining. (Let's see the test loss).
 	- Ran out of memory when running eval bleu for dev set.
 	- Also need to set source and target lengths to larger (512).
-		- Require 42 GB for batch size of 16 with source and target lengths of 512.
+		- Require 48 GB for batch size of 16 with source and target lengths of 512.
+- Verify that it is learning.
+	- Second epoch the train and validation loss are lower?
+	- Run inference, look at a few examples. Is it just outputing the input?
+	- Do we need to increase learning rate?
+	- Change format of AST to decrease tonization size?
+- Rechange the code for original code summerization, however, pass DFG and AST input.
+	- See how well the model does finetuning on code summerization task.
