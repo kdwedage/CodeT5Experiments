@@ -28,3 +28,4 @@
 	- Currently the pretraining is use CodeSearchNet python which only has 251k examples, which may be insufficient for pretraining. (Let's see the test loss).
 	- Ran out of memory when running eval bleu for dev set.
 	- Also need to set source and target lengths to larger (512).
+		- Require 42 GB for batch size of 16 with source and target lengths of 512.
