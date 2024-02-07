@@ -2,7 +2,7 @@ import json
 import sys
 from tree_sitter import Language, Parser
 
-sys.path.append('/home/CodeT5/parser/')
+sys.path.append('/home/CodeT5Experiments/CodeT5/parser/')
 from DFG import DFG_python
 from parser_utils import (remove_comments_and_docstrings,
                    tree_to_token_index,
@@ -239,7 +239,17 @@ def read_concode_examples(filename, data_num):
                 break
     return examples
 
-def read_pretrain_examples(filename, data_num):
+def preorder_traversal(node):
+    result = ""
+    result += node.type + " " #+ node.text.decode('utf-8') + "\n"
+    
+    # Recursively traverse the children in preorder
+    for child in node.children:
+        result += preorder_traversal(child)
+    
+    return result
+
+def read_pretrain_examples(filename, data_num, preorder=True):
     """Read examples from filename."""
     examples = []
     with open(filename, encoding="utf-8") as f:
@@ -257,7 +267,7 @@ def read_pretrain_examples(filename, data_num):
             
             parsers={}        
             for lang in dfg_function:
-                LANGUAGE = Language('/home/CodeT5/parser/my-languages2.so', lang)
+                LANGUAGE = Language('/home/CodeT5Experiments/CodeT5/parser/my-languages2.so', lang)
                 parser = Parser()
                 parser.set_language(LANGUAGE) 
                 parser = [parser,dfg_function[lang]]    
@@ -267,7 +277,10 @@ def read_pretrain_examples(filename, data_num):
             original_code = js['code']
             tree = parsers['python'][0].parse(bytes(original_code,'utf8')) 
             root_node = tree.root_node
-            ast = root_node.sexp()
+            if preorder:
+                ast = preorder_traversal(root_node)
+            else:
+                ast = root_node.sexp()
 
             # DFG.
             ast_token_nodes = tree_to_token_nodes(root_node)

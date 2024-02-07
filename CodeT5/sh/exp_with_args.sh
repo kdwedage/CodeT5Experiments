@@ -1,7 +1,8 @@
-WORKDIR="/home/"
+
+WORKDIR="/home/CodeT5Experiments"
 export PYTHONPATH=$WORKDIR
 
-WORKDIR="/home/CodeT5"
+WORKDIR="/home/CodeT5Experiments/CodeT5"
 
 TASK=${1}
 SUB_TASK=${2}
