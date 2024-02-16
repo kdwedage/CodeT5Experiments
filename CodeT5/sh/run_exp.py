@@ -73,6 +73,16 @@ def get_args_by_task_model(task, sub_task, model_tag):
         trg_len = 400
         epoch = 1
         patience = 2
+    elif 'pretrain' in task:
+        src_len = 512
+        trg_len = 512
+        epoch = 3
+        patience = 1
+    elif 'finetune' in task:
+        src_len = 512
+        trg_len = 512
+        epoch = 15
+        patience = 2
 
     if 'codet5_small' in model_tag:
         bs = 32
@@ -134,7 +144,7 @@ def run_multi_task_exp(args):
 
 
 def get_sub_tasks(task):
-    if task == 'summarize':
+    if task == 'summarize' or 'pretrain' in task or 'finetune' in task:
         sub_tasks = ['ruby', 'javascript', 'go', 'python', 'java', 'php']
     elif task == 'translate':
         sub_tasks = ['java-cs', 'cs-java']
@@ -150,7 +160,10 @@ if __name__ == '__main__':
     parser.add_argument("--model_tag", type=str, default='codet5_base',
                         choices=['roberta', 'codebert', 'bart_base', 'codet5_small', 'codet5_base', 'codet5_large'])
     parser.add_argument("--task", type=str, default='summarize', choices=['summarize', 'concode', 'translate',
-                                                                          'refine', 'defect', 'clone', 'multi_task'])
+                                                                          'refine', 'defect', 'clone', 'multi_task',
+                                                                          'pretrain0', 'pretrain1', 'pretrain2', 'pretrain3',
+                                                                          'finetune0', 'finetune1', 'finetune2', 'finetune3',
+                                                                         ])
     parser.add_argument("--sub_task", type=str, default='ruby')
     parser.add_argument("--res_dir", type=str, default='results', help='directory to save fine-tuning results')
     parser.add_argument("--model_dir", type=str, default='saved_models', help='directory to save fine-tuned models')

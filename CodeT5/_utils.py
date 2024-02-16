@@ -1,7 +1,6 @@
 import json
 import sys
 from tree_sitter import Language, Parser
-
 sys.path.append('/home/CodeT5Experiments/CodeT5/parser/')
 from DFG import DFG_python
 from parser_utils import (remove_comments_and_docstrings,
@@ -10,9 +9,8 @@ from parser_utils import (remove_comments_and_docstrings,
                    tree_to_variable_index,
                    tree_to_token_nodes)
 
-
 def add_lang_by_task(target_str, task, sub_task):
-    if task == 'summarize':
+    if task == 'summarize' or 'finetune' in task:
         target_str = '<en> ' + target_str
     elif task == 'refine':
         target_str = '<java> ' + target_str
@@ -31,11 +29,16 @@ def add_lang_by_task(target_str, task, sub_task):
 def convert_examples_to_features(item):
     example, example_index, tokenizer, args, stage = item
 
-    if args.model_type in ['t5', 'codet5'] and args.add_task_prefix:
+    if args.model_type in ['t5', 'codet5'] and args.add_task_prefix: 
+        task_prefix = args.task
+        if task_prefix == 'pretrain0' or task_prefix == 'pretrain2' or task_prefix == 'pretrain3':
+            task_prefix = '<DENOISE>'
+        elif task_prefix == 'pretrain1':
+            task_prefix = 'summarize <AST>'
         if args.sub_task != 'none':
-            source_str = "{} {}: {}".format(args.task, args.sub_task, example.source)
+            source_str = "{} {}: {}".format(task_prefix, args.sub_task, example.source)
         else:
-            source_str = "{}: {}".format(args.task, example.source)
+            source_str = "{}: {}".format(task_prefix, example.source)
     else:
         source_str = example.source
 
@@ -239,18 +242,23 @@ def read_concode_examples(filename, data_num):
                 break
     return examples
 
-def preorder_traversal(node):
+def preorder_traversal(node, include_leaf_value=False):
     result = ""
-    result += node.type + " " #+ node.text.decode('utf-8') + "\n"
-    
+    type = str(node.type)
+    result += type + ' '
+    if not node.children and node.text.decode('utf-8') != type and include_leaf_value:
+        result += '<' + node.text.decode('utf-8') + '> '
+
     # Recursively traverse the children in preorder
     for child in node.children:
         result += preorder_traversal(child)
     
     return result
 
-def read_pretrain_examples(filename, data_num, preorder=True):
-    """Read examples from filename."""
+
+
+def read_pretrain0_examples(filename, data_num, preorder=True):
+    """ Input is corrupted Code + DFG + AST. Output is uncorrupted. Corrupted occurs after tokenization."""
     examples = []
     with open(filename, encoding="utf-8") as f:
         for idx, line in enumerate(f):
@@ -264,7 +272,7 @@ def read_pretrain_examples(filename, data_num, preorder=True):
             dfg_function={
             'python':DFG_python
             }
-            
+
             parsers={}        
             for lang in dfg_function:
                 LANGUAGE = Language('/home/CodeT5Experiments/CodeT5/parser/my-languages2.so', lang)
@@ -298,29 +306,182 @@ def read_pretrain_examples(filename, data_num, preorder=True):
                 assert (d[2]=='comesFrom' or d[2]=='computedFrom')
             dfg = [(d[1], d[4]) for d in dfg if (len(d[4])>0)] # left comes from right
 
-            # Format: (indentifier_count)
-            count = {}
-            new_mapping = []
-            for i in code_tokens:
-                if i in count:
-                    count[i] += 1
-                else:
-                    count[i] = 0
-                new_mapping.append(i + '_' + str(count[i]))
-            dfg = [(new_mapping[int(x)], [new_mapping[z] for z in y]) for x,y in dfg]
-            
-            unintended_code += '<DFG>' + str(dfg) + '<AST>' + ast
+            # Only save variables with unique names.
+            concise_dfg = set()
+            for x,y in dfg:
+                if len(y) == 1 and code_tokens[x] == code_tokens[y[0]]:
+                    continue
+                valid = (code_tokens[x], tuple([code_tokens[z] for z in y]))
+                concise_dfg.add(valid)
+            dfg = str(concise_dfg).replace("'",'').replace('{','').replace('}','')
+
+            unintended_code += '<DFG>' + dfg + '<AST>' + ast
             examples.append(
                 Example(
                     idx=idx,
-                    source='<DENOISE>' + unintended_code, # Add denoise task.
-                    target=unintended_code, # Set target to code.
+                    source=unintended_code,
+                    target=unintended_code,
                 )
             )
             if idx + 1 == data_num:
                 break
     return examples
 
+def read_pretrain1_examples(filename, data_num, preorder=True):
+    """ Input is full AST. Output is original code."""
+    examples = []
+    with open(filename, encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            line = line.strip()
+            js = json.loads(line)
+            if 'idx' not in js:
+                js['idx'] = idx
+            unintended_code = ' '.join(js['code_tokens']).replace('\n', ' ')
+            unintended_code = ' '.join(unintended_code.strip().split())
+
+            dfg_function={
+            'python':DFG_python
+            }
+
+            parsers={}        
+            for lang in dfg_function:
+                LANGUAGE = Language('/home/CodeT5Experiments/CodeT5/parser/my-languages2.so', lang)
+                parser = Parser()
+                parser.set_language(LANGUAGE) 
+                parser = [parser,dfg_function[lang]]    
+                parsers[lang]= parser
+            
+            # Add AST.
+            original_code = js['code']
+            tree = parsers['python'][0].parse(bytes(original_code,'utf8')) 
+            root_node = tree.root_node
+            if preorder:
+                ast = preorder_traversal(root_node, include_leaf_value=True)
+            else:
+                ast = root_node.sexp()
+
+            examples.append(
+                Example(
+                    idx=idx,
+                    source=ast,
+                    target=unintended_code,
+                )
+            )
+            if idx + 1 == data_num:
+                break
+    return examples
+
+def read_pretrain2_examples(filename, data_num):
+    """ Input is corrupted code + DFG. Output is uncorrupted."""
+    examples = []
+    with open(filename, encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            line = line.strip()
+            js = json.loads(line)
+            if 'idx' not in js:
+                js['idx'] = idx
+            unintended_code = ' '.join(js['code_tokens']).replace('\n', ' ')
+            unintended_code = ' '.join(unintended_code.strip().split())
+
+            dfg_function={
+            'python':DFG_python
+            }
+
+            parsers={}        
+            for lang in dfg_function:
+                LANGUAGE = Language('/home/CodeT5Experiments/CodeT5/parser/my-languages2.so', lang)
+                parser = Parser()
+                parser.set_language(LANGUAGE) 
+                parser = [parser,dfg_function[lang]]    
+                parsers[lang]= parser
+            
+            # Add AST.
+            original_code = js['code']
+            tree = parsers['python'][0].parse(bytes(original_code,'utf8')) 
+            root_node = tree.root_node
+
+            # DFG.
+            ast_token_nodes = tree_to_token_nodes(root_node)
+            tokens_index = [(node.start_point, node.end_point) for node in ast_token_nodes]
+            original_code=original_code.split('\n')
+            code_tokens=[index_to_code_token(x,original_code) for x in tokens_index] 
+            index_to_code={index:(idx,code_) for idx,(index,code_) in enumerate(zip(tokens_index,code_tokens))}
+    
+            try:
+                dfg,_ = DFG_python(root_node,index_to_code,{}) 
+            except Exception as e:
+                dfg = []
+                print(str(e))
+            for d in dfg:
+                assert (d[2]=='comesFrom' or d[2]=='computedFrom')
+            dfg = [(d[1], d[4]) for d in dfg if (len(d[4])>0)] # left comes from right
+
+            # Only save variables with unique names.
+            concise_dfg = set()
+            for x,y in dfg:
+                if len(y) == 1 and code_tokens[x] == code_tokens[y[0]]:
+                    continue
+                valid = (code_tokens[x], tuple([code_tokens[z] for z in y]))
+                concise_dfg.add(valid)
+            dfg = str(concise_dfg).replace("'",'').replace('{','').replace('}','')
+
+            unintended_code += '<DFG>' + dfg
+            examples.append(
+                Example(
+                    idx=idx,
+                    source=unintended_code,
+                    target=unintended_code,
+                )
+            )
+            if idx + 1 == data_num:
+                break
+    return examples
+
+def read_pretrain3_examples(filename, data_num, preorder=True):
+    """ Input is corrupted full AST. Output is uncorrupted."""
+    examples = []
+    with open(filename, encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            line = line.strip()
+            js = json.loads(line)
+            if 'idx' not in js:
+                js['idx'] = idx
+            unintended_code = ' '.join(js['code_tokens']).replace('\n', ' ')
+            unintended_code = ' '.join(unintended_code.strip().split())
+
+            dfg_function={
+            'python':DFG_python
+            }
+
+            parsers={}        
+            for lang in dfg_function:
+                LANGUAGE = Language('/home/CodeT5Experiments/CodeT5/parser/my-languages2.so', lang)
+                parser = Parser()
+                parser.set_language(LANGUAGE) 
+                parser = [parser,dfg_function[lang]]    
+                parsers[lang]= parser
+            
+            # Add AST.
+            original_code = js['code']
+            tree = parsers['python'][0].parse(bytes(original_code,'utf8')) 
+            root_node = tree.root_node
+            if preorder:
+                ast = preorder_traversal(root_node, include_leaf_value=True)
+            else:
+                ast = root_node.sexp()
+
+            ast = '<AST> ' + ast
+
+            examples.append(
+                Example(
+                    idx=idx,
+                    source=ast,
+                    target=ast,
+                )
+            )
+            if idx + 1 == data_num:
+                break
+    return examples
 
 def read_summarize_examples(filename, data_num):
     """Read examples from filename."""

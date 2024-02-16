@@ -39,8 +39,6 @@ from evaluator.CodeBLEU import calc_code_bleu
 from evaluator.bleu import _bleu
 from utils import get_filenames, get_elapse_time, load_and_cache_gen_data
 from configs import add_args, set_seed, set_dist
-from denoising import add_noise
-from special_code_tokens import get_ast_tokens
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -62,11 +60,6 @@ def eval_ppl_epoch(args, eval_data, eval_examples, model, tokenizer):
     for batch in tqdm(eval_dataloader, total=len(eval_dataloader), desc="Eval ppl"):
         batch = tuple(t.to(args.device) for t in batch)
         source_ids, target_ids = batch
-        
-        # Add noise to code input.
-        if args.task in ['pretrain0', 'pretrain2', 'pretrain3']: #DAE tasks.
-            source_ids = add_noise(source_ids, tokenizer)
-
         source_mask = source_ids.ne(tokenizer.pad_token_id)
         target_mask = target_ids.ne(tokenizer.pad_token_id)
 
@@ -102,11 +95,6 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
     bleu, codebleu = 0.0, 0.0
     for batch in tqdm(eval_dataloader, total=len(eval_dataloader), desc="Eval bleu for {} set".format(split_tag)):
         source_ids = batch[0].to(args.device)
-
-        # Add noise to code input.
-        if args.task in ['pretrain0', 'pretrain2', 'pretrain3']: #DAE tasks.
-            source_ids = add_noise(source_ids, tokenizer)
-
         source_mask = source_ids.ne(tokenizer.pad_token_id)
         with torch.no_grad():
             if args.model_type == 'roberta':
@@ -177,7 +165,6 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
 
 
 def main():
-    logger.warning('Running custom pretraining!')
     parser = argparse.ArgumentParser()
     args = add_args(parser)
     logger.info(args)
@@ -186,14 +173,6 @@ def main():
     set_dist(args)
     set_seed(args)
     config, model, tokenizer = build_or_load_gen_model(args)
-    additional_tokens = ['<DENOISE>', '<AST>', '<DFG>']
-    #additional_tokens.extend(list(get_ast_tokens(lang='python')))
-    special_tokens_dict = {'additional_special_tokens': additional_tokens}
-
-    num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
-    logger.info(f'Number of addeed special tokens: {num_added_toks}')
-    model.resize_token_embeddings(len(tokenizer))
-
     model.to(args.device)
     if args.n_gpu > 1:
         # for DataParallel
@@ -228,9 +207,7 @@ def main():
 
         # Start training
         train_example_num = len(train_data)
-        logger.info(f"***** Running {args.task} *****")
-        if args.task in ['pretrain0', 'pretrain2', 'pretrain3']:
-            logger.info('This is a DAE task')
+        logger.info("***** Running training *****")
         logger.info("  Num examples = %d", train_example_num)
         logger.info("  Batch size = %d", args.train_batch_size)
         logger.info("  Batch num = %d", math.ceil(train_example_num / args.train_batch_size))
@@ -247,11 +224,6 @@ def main():
             for step, batch in enumerate(bar):
                 batch = tuple(t.to(args.device) for t in batch)
                 source_ids, target_ids = batch
-                
-                # Add noise to code input.
-                if args.task in ['pretrain0', 'pretrain2', 'pretrain3']: #DAE tasks.
-                    source_ids = add_noise(source_ids, tokenizer)
-
                 source_mask = source_ids.ne(tokenizer.pad_token_id)
                 target_mask = target_ids.ne(tokenizer.pad_token_id)
 

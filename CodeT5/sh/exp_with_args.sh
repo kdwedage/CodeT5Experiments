@@ -1,4 +1,3 @@
-
 WORKDIR="/home/CodeT5Experiments"
 export PYTHONPATH=$WORKDIR
 
@@ -81,6 +80,10 @@ elif [[ ${TASK} == 'clone' ]]; then
   RUN_FN=${WORKDIR}/run_clone.py
 elif [[ ${TASK} == 'defect' ]] && [[ ${MODEL_TYPE} == 'roberta' ||  ${MODEL_TYPE} == 'bart' ]]; then
   RUN_FN=${WORKDIR}/run_defect.py
+elif [[ ${TASK} == 'summarize' ]]; then
+  RUN_FN=${WORKDIR}/run_gen.py
+elif [[ ${TASK} == 'finetune0' || ${TASK} == 'finetune1' || ${TASK} == 'finetune2' || ${TASK} == 'finetune3' ]]; then
+  RUN_FN=${WORKDIR}/run_custom_finetune.py
 else
   RUN_FN=${WORKDIR}/run_custom_pretraining.py
 fi

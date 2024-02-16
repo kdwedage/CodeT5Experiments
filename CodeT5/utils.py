@@ -175,8 +175,8 @@ def get_filenames(data_root, task, sub_task, split=''):
         train_fn = '{}/train.json'.format(data_dir)
         dev_fn = '{}/dev.json'.format(data_dir)
         test_fn = '{}/test.json'.format(data_dir)
-    elif task == 'summarize':
-        data_dir = '{}/{}/{}'.format(data_root, task, sub_task)
+    elif task == 'summarize' or 'pretrain' in task or 'finetune' in task:
+        data_dir = '{}/{}/{}'.format(data_root, 'summarize', sub_task)
         train_fn = '{}/train.jsonl'.format(data_dir)
         dev_fn = '{}/valid.jsonl'.format(data_dir)
         test_fn = '{}/test.jsonl'.format(data_dir)
@@ -216,14 +216,17 @@ def get_filenames(data_root, task, sub_task, split=''):
 
 
 def read_examples(filename, data_num, task):
-    logger.warning('Reading pretraining examples, from summarization dataset.')
     read_example_dict = {
-        'summarize': read_pretrain_examples, # read_summarize_examples
+        'summarize': read_summarize_examples,
         'refine': read_refine_examples,
         'translate': read_translate_examples,
         'concode': read_concode_examples,
         'clone': read_clone_examples,
         'defect': read_defect_examples,
+        'pretrain0': read_pretrain0_examples,
+        'pretrain1': read_pretrain1_examples,
+        'pretrain2': read_pretrain2_examples,
+        'pretrain3': read_pretrain3_examples,
     }
     return read_example_dict[task](filename, data_num)
 
