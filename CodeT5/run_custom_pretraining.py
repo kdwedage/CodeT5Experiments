@@ -100,6 +100,7 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
     model.eval()
     pred_ids = []
     bleu, codebleu = 0.0, 0.0
+    gold_source = []
     for batch in tqdm(eval_dataloader, total=len(eval_dataloader), desc="Eval bleu for {} set".format(split_tag)):
         source_ids = batch[0].to(args.device)
 
@@ -107,6 +108,9 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
         if args.task in ['pretrain0', 'pretrain2', 'pretrain3']: #DAE tasks.
             source_ids = add_noise(source_ids, tokenizer)
 
+            # Added to make sure the outputted source is notised correctly.
+            gold_source.extend(tokenizer.decode(id, skip_special_tokens=True, clean_up_tokenization_spaces=False) for id in source_ids)
+        
         source_mask = source_ids.ne(tokenizer.pad_token_id)
         with torch.no_grad():
             if args.model_type == 'roberta':
@@ -122,7 +126,6 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
                                        max_length=args.max_target_length)
                 top_preds = list(preds.cpu().numpy())
             pred_ids.extend(top_preds)
-
     pred_nls = [tokenizer.decode(id, skip_special_tokens=True, clean_up_tokenization_spaces=False) for id in pred_ids]
 
     output_fn = os.path.join(args.res_dir, "test_{}.output".format(criteria))
@@ -144,7 +147,10 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
     else:
         dev_accs, predictions = [], []
         with open(output_fn, 'w') as f, open(gold_fn, 'w') as f1, open(src_fn, 'w') as f2:
-            for pred_nl, gold in zip(pred_nls, eval_examples):
+            for index in range(min(len(pred_nls), len(eval_examples))):
+                gold = eval_examples[index]
+                pred_nl = pred_nls[index]
+                logger.info('Evaluting example')
                 dev_accs.append(pred_nl.strip() == gold.target.strip())
                 if args.task in ['summarize']:
                     # for smooth-bleu4 evaluation
@@ -152,6 +158,10 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
                     f.write(str(gold.idx) + '\t' + pred_nl.strip() + '\n')
                     f1.write(str(gold.idx) + '\t' + gold.target.strip() + '\n')
                     f2.write(str(gold.idx) + '\t' + gold.source.strip() + '\n')
+                elif args.task in ['pretrain0', 'pretrain2', 'pretrain3']:
+                    f.write(pred_nl.strip() + '\n')
+                    f1.write(gold.target.strip().replace('<AST>','').replace('<DFG>','') + '\n')
+                    f2.write(gold_source[index].strip() + '\n')
                 else:
                     f.write(pred_nl.strip() + '\n')
                     f1.write(gold.target.strip() + '\n')

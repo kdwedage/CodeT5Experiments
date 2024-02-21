@@ -76,8 +76,8 @@ def get_args_by_task_model(task, sub_task, model_tag):
     elif 'pretrain' in task:
         src_len = 512
         trg_len = 512
-        epoch = 3
-        patience = 1
+        epoch = 5
+        patience = 2
     elif 'finetune' in task:
         src_len = 512
         trg_len = 512
@@ -96,7 +96,7 @@ def get_args_by_task_model(task, sub_task, model_tag):
         bs = 32
         if task == 'translate':
             bs = 25
-        elif task == 'summarize':
+        elif task == 'summarize' or 'pretrain' in task or 'finetune' in task:
             bs = 16 #48
         elif task == 'clone':
             if model_tag in ['codebert', 'roberta']:
