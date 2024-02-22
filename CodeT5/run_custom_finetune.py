@@ -134,7 +134,7 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
         with open(output_fn, 'w') as f, open(gold_fn, 'w') as f1, open(src_fn, 'w') as f2:
             for pred_nl, gold in zip(pred_nls, eval_examples):
                 dev_accs.append(pred_nl.strip() == gold.target.strip())
-                if args.task in ['summarize']:
+                if args.task in ['summarize'] or 'finetune' in args.task:
                     # for smooth-bleu4 evaluation
                     predictions.append(str(gold.idx) + '\t' + pred_nl)
                     f.write(str(gold.idx) + '\t' + pred_nl.strip() + '\n')
@@ -145,7 +145,7 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
                     f1.write(gold.target.strip() + '\n')
                     f2.write(gold.source.strip() + '\n')
 
-        if args.task == 'summarize':
+        if args.task == 'summarize' or 'finetune' in args.task:
             (goldMap, predictionMap) = smooth_bleu.computeMaps(predictions, gold_fn)
             bleu = round(smooth_bleu.bleuFromMaps(goldMap, predictionMap)[0], 2)
         else:
@@ -173,6 +173,7 @@ def main():
     set_dist(args)
     set_seed(args)
     config, model, tokenizer = build_or_load_gen_model(args)
+
     model.to(args.device)
     if args.n_gpu > 1:
         # for DataParallel

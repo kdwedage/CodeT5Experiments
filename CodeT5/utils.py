@@ -227,6 +227,9 @@ def read_examples(filename, data_num, task):
         'pretrain1': read_pretrain1_examples,
         'pretrain2': read_pretrain2_examples,
         'pretrain3': read_pretrain3_examples,
+        'finetune0': read_finetune0_examples,
+        'finetune1': read_finetune1_examples,
+        #'finetune2': read_pretrain2_examples, # MLT
     }
     return read_example_dict[task](filename, data_num)
 

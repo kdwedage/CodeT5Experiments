@@ -483,6 +483,127 @@ def read_pretrain3_examples(filename, data_num, preorder=True):
                 break
     return examples
 
+def read_finetune0_examples(filename, data_num, preorder=True):
+    """ Input is Code + DFG + AST. Output is NL summary."""
+    examples = []
+    with open(filename, encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            line = line.strip()
+            js = json.loads(line)
+            if 'idx' not in js:
+                js['idx'] = idx
+            unintended_code = ' '.join(js['code_tokens']).replace('\n', ' ')
+            unintended_code = ' '.join(unintended_code.strip().split())
+
+            nl = ' '.join(js['docstring_tokens']).replace('\n', '')
+            nl = ' '.join(nl.strip().split())
+
+            dfg_function={
+            'python':DFG_python
+            }
+
+            parsers={}        
+            for lang in dfg_function:
+                LANGUAGE = Language('/home/CodeT5Experiments/CodeT5/parser/my-languages2.so', lang)
+                parser = Parser()
+                parser.set_language(LANGUAGE) 
+                parser = [parser,dfg_function[lang]]    
+                parsers[lang]= parser
+            
+            # Add AST.
+            original_code = js['code']
+            tree = parsers['python'][0].parse(bytes(original_code,'utf8')) 
+            root_node = tree.root_node
+            if preorder:
+                ast = preorder_traversal(root_node)
+            else:
+                ast = root_node.sexp()
+
+            # DFG.
+            ast_token_nodes = tree_to_token_nodes(root_node)
+            tokens_index = [(node.start_point, node.end_point) for node in ast_token_nodes]
+            original_code=original_code.split('\n')
+            code_tokens=[index_to_code_token(x,original_code) for x in tokens_index] 
+            index_to_code={index:(idx,code_) for idx,(index,code_) in enumerate(zip(tokens_index,code_tokens))}
+    
+            try:
+                dfg,_ = DFG_python(root_node,index_to_code,{}) 
+            except Exception as e:
+                dfg = []
+                print(str(e))
+            for d in dfg:
+                assert (d[2]=='comesFrom' or d[2]=='computedFrom')
+            dfg = [(d[1], d[4]) for d in dfg if (len(d[4])>0)] # left comes from right
+
+            # Only save variables with unique names.
+            concise_dfg = set()
+            for x,y in dfg:
+                if len(y) == 1 and code_tokens[x] == code_tokens[y[0]]:
+                    continue
+                valid = (code_tokens[x], tuple([code_tokens[z] for z in y]))
+                concise_dfg.add(valid)
+            dfg = str(concise_dfg).replace("'",'').replace('{','').replace('}','')
+
+            unintended_code += '<DFG>' + dfg + '<AST>' + ast
+            examples.append(
+                Example(
+                    idx=idx,
+                    source=unintended_code,
+                    target=nl,
+                )
+            )
+            if idx + 1 == data_num:
+                break
+    return examples
+
+def read_finetune1_examples(filename, data_num, preorder=True):
+    """ Input is full AST. Output is NL summary."""
+    examples = []
+    with open(filename, encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            line = line.strip()
+            js = json.loads(line)
+            if 'idx' not in js:
+                js['idx'] = idx
+            unintended_code = ' '.join(js['code_tokens']).replace('\n', ' ')
+            unintended_code = ' '.join(unintended_code.strip().split())
+
+            nl = ' '.join(js['docstring_tokens']).replace('\n', '')
+            nl = ' '.join(nl.strip().split())
+
+            dfg_function={
+            'python':DFG_python
+            }
+
+            parsers={}        
+            for lang in dfg_function:
+                LANGUAGE = Language('/home/CodeT5Experiments/CodeT5/parser/my-languages2.so', lang)
+                parser = Parser()
+                parser.set_language(LANGUAGE) 
+                parser = [parser,dfg_function[lang]]    
+                parsers[lang]= parser
+            
+            # Add AST.
+            original_code = js['code']
+            tree = parsers['python'][0].parse(bytes(original_code,'utf8')) 
+            root_node = tree.root_node
+            if preorder:
+                ast = preorder_traversal(root_node, include_leaf_value=True)
+            else:
+                ast = root_node.sexp()
+
+            examples.append(
+                Example(
+                    idx=idx,
+                    source=ast,
+                    target=nl,
+                )
+            )
+            if idx + 1 == data_num:
+                break
+    return examples
+
+
 def read_summarize_examples(filename, data_num):
     """Read examples from filename."""
     examples = []

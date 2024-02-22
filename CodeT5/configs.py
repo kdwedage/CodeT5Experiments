@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def add_args(parser):
     parser.add_argument("--task", type=str, required=True,
                         choices=['summarize', 'concode', 'translate', 'refine', 'defect', 'clone', 'multi_task',
-                                'pretrain0', 'pretrain1', 'pretrain2', 'pretrain3','finetune0', 'finetune1', 'finetune2', 'finetune3'])
+                                'pretrain0', 'pretrain1', 'pretrain2', 'pretrain3','finetune0', 'finetune1', 'finetune2'])
     parser.add_argument("--sub_task", type=str, default='')
     parser.add_argument("--lang", type=str, default='')
     parser.add_argument("--eval_task", type=str, default='')

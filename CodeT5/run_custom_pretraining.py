@@ -40,7 +40,6 @@ from evaluator.bleu import _bleu
 from utils import get_filenames, get_elapse_time, load_and_cache_gen_data
 from configs import add_args, set_seed, set_dist
 from denoising import add_noise
-from special_code_tokens import get_ast_tokens
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -150,7 +149,6 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
             for index in range(min(len(pred_nls), len(eval_examples))):
                 gold = eval_examples[index]
                 pred_nl = pred_nls[index]
-                logger.info('Evaluting example')
                 dev_accs.append(pred_nl.strip() == gold.target.strip())
                 if args.task in ['summarize']:
                     # for smooth-bleu4 evaluation

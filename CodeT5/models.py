@@ -36,6 +36,15 @@ def build_or_load_gen_model(args):
 
     logger.info("Finish loading model [%s] from %s", get_model_size(model), args.model_name_or_path)
 
+    
+    additional_tokens = ['<DENOISE>', '<AST>', '<DFG>']
+    #additional_tokens.extend(list(get_ast_tokens(lang='python')))
+    special_tokens_dict = {'additional_special_tokens': additional_tokens}
+
+    num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
+    logger.info(f'Number of addeed special tokens: {num_added_toks}')
+    model.resize_token_embeddings(len(tokenizer))
+
     if args.load_model_path is not None:
         logger.info("Reload model from {}".format(args.load_model_path))
         model.load_state_dict(torch.load(args.load_model_path))
