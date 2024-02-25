@@ -84,16 +84,17 @@ elif [[ ${TASK} == 'summarize' ]]; then
   RUN_FN=${WORKDIR}/run_gen.py
 elif [[ ${TASK} == 'finetune0' || ${TASK} == 'finetune1' || ${TASK} == 'finetune2' || ${TASK} == 'finetune3' ]]; then
   RUN_FN=${WORKDIR}/run_custom_finetune.py
-  PRETRAIN_PATH=/home/CodeT5Experiments/CodeT5/sh/saved_models/pretrain0/python/codet5_base_all_lr5_bs16_src512_trg512_pat2_e5/checkpoint-best-bleu/pytorch_model.bin
+  #PRETRAIN_PATH=/home/CodeT5Experiments/CodeT5/sh/saved_models/pretrain0/python/codet5_base_all_lr5_bs16_src512_trg512_pat2_e5/checkpoint-best-bleu/pytorch_model.bin
 else
   RUN_FN=${WORKDIR}/run_custom_pretraining.py
 fi
 
 
+# --load_model_path ${PRETRAIN_PATH} \
+
 CUDA_VISIBLE_DEVICES=${GPU} \
   python ${RUN_FN}  ${MULTI_TASK_AUG}   \
   --do_train --do_eval --do_eval_bleu --do_test \
-  --load_model_path ${PRETRAIN_PATH} \
   --task ${TASK} --sub_task ${SUB_TASK} --model_type ${MODEL_TYPE} --data_num ${DATA_NUM}  \
   --num_train_epochs ${EPOCH} --warmup_steps ${WARMUP} --learning_rate ${LR}e-5 --patience ${PATIENCE} \
   --tokenizer_name=${TOKENIZER}  --model_name_or_path=${MODEL_PATH} --data_dir ${WORKDIR}/data  \

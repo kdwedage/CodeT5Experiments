@@ -223,13 +223,14 @@ def read_examples(filename, data_num, task):
         'concode': read_concode_examples,
         'clone': read_clone_examples,
         'defect': read_defect_examples,
-        'pretrain0': read_pretrain0_examples,
-        'pretrain1': read_pretrain1_examples,
-        'pretrain2': read_pretrain2_examples,
-        'pretrain3': read_pretrain3_examples,
-        'finetune0': read_finetune0_examples,
-        'finetune1': read_finetune1_examples,
-        #'finetune2': read_pretrain2_examples, # MLT
+        'pretrain0': read_pretrain0_examples, # Code + DFG + AST DAE
+        'pretrain1': read_pretrain1_examples, # Full AST -> Code
+        'pretrain2': read_pretrain2_examples, # Code + DFG DAE
+        'pretrain3': read_pretrain3_examples, # Full AST DAE
+        'finetune0': read_finetune0_examples, # Code + DFG + AST -> NL
+        'finetune1': read_finetune1_examples, # Full AST -> NL
+        'finetune2': read_finetune2_examples, # Code + DFG -> NL
+        'finetune3': read_finetune3_examples, # MLT -> NL
     }
     return read_example_dict[task](filename, data_num)
 

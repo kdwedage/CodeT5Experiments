@@ -214,6 +214,7 @@ def main():
         logger.info("  Batch num = %d", math.ceil(train_example_num / args.train_batch_size))
         logger.info("  Num epoch = %d", args.num_train_epochs)
 
+        breakpoint()
         dev_dataset = {}
         global_step, best_bleu_em, best_ppl = 0, -1, 1e6
         not_loss_dec_cnt, not_bleu_em_inc_cnt = 0, 0 if args.do_eval_bleu else 1e6
