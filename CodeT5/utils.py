@@ -38,10 +38,15 @@ def load_and_cache_gen_data(args, filename, pool, tokenizer, split_tag, only_src
         features = pool.map(convert_examples_to_features, tqdm(tuple_examples, total=len(tuple_examples)))
         all_source_ids = torch.tensor([f.source_ids for f in features], dtype=torch.long)
         if split_tag == 'test' or only_src:
-            data = TensorDataset(all_source_ids)
+            data = TensorDataset(all_source_ids) # Don't use MTL for test.
         else:
             all_target_ids = torch.tensor([f.target_ids for f in features], dtype=torch.long)
-            data = TensorDataset(all_source_ids, all_target_ids)
+            if args.task == 'finetune3': # Multi-task learning
+                data = TensorDataset(all_source_ids, all_target_ids,
+                                     torch.tensor([f.ast for f in features], dtype=torch.long),
+                                     torch.tensor([f.dfg for f in features], dtype=torch.long))
+            else:
+                data = TensorDataset(all_source_ids, all_target_ids)
         if args.local_rank in [-1, 0] and not is_sample:
             torch.save(data, cache_fn)
     return examples, data

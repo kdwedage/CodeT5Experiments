@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def add_args(parser):
     parser.add_argument("--task", type=str, required=True,
                         choices=['summarize', 'concode', 'translate', 'refine', 'defect', 'clone', 'multi_task',
-                                'pretrain0', 'pretrain1', 'pretrain2', 'pretrain3','finetune0', 'finetune1', 'finetune2'])
+                                'pretrain0', 'pretrain1', 'pretrain2', 'pretrain3','finetune0', 'finetune1', 'finetune2', 'finetune3'])
     parser.add_argument("--sub_task", type=str, default='')
     parser.add_argument("--lang", type=str, default='')
     parser.add_argument("--eval_task", type=str, default='')
@@ -98,6 +98,10 @@ def add_args(parser):
                         help="For distributed training: local_rank")
     parser.add_argument('--seed', type=int, default=1234,
                         help="random seed for initialization")
+    # MTL
+    parser.add_argument('--code_weight', type=float, default=0.8)
+    parser.add_argument('--ast_weight', type=float, default=0.1)
+    parser.add_argument('--dfg_weight', type=float, default=0.1)
     args = parser.parse_args()
 
     if args.task in ['summarize']:

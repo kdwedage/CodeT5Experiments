@@ -45,6 +45,10 @@ def convert_examples_to_features(item):
     source_str = source_str.replace('</s>', '<unk>')
     source_ids = tokenizer.encode(source_str, max_length=args.max_source_length, padding='max_length', truncation=True)
     assert source_ids.count(tokenizer.eos_token_id) == 1
+
+    if args.task == 'finetune3': # Multi-task learning
+        ast_str = tokenizer.encode(example.ast, max_length=args.max_source_length, padding='max_length', truncation=True)
+        dfg_str = tokenizer.encode(example.dfg, max_length=args.max_source_length, padding='max_length', truncation=True)
     if stage == 'test':
         target_ids = []
     else:
@@ -67,7 +71,9 @@ def convert_examples_to_features(item):
         example_index,
         source_ids,
         target_ids,
-        url=example.url
+        url=example.url,
+        ast=ast_str,
+        dfg=dfg_str,
     )
 
 
@@ -132,11 +138,15 @@ class InputFeatures(object):
                  example_id,
                  source_ids,
                  target_ids,
+                 ast=None,
+                 dfg=None,
                  url=None
                  ):
         self.example_id = example_id
         self.source_ids = source_ids
         self.target_ids = target_ids
+        self.ast = ast,
+        self.dfg = dfg,
         self.url = url
 
 
@@ -159,6 +169,8 @@ class Example(object):
         self.url = url
         self.task = task
         self.sub_task = sub_task
+        self.ast = ast
+        self.dfg = dfg
 
 
 class CloneExample(object):

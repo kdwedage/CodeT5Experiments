@@ -59,7 +59,11 @@ def eval_ppl_epoch(args, eval_data, eval_examples, model, tokenizer):
     eval_loss, batch_num = 0, 0
     for batch in tqdm(eval_dataloader, total=len(eval_dataloader), desc="Eval ppl"):
         batch = tuple(t.to(args.device) for t in batch)
-        source_ids, target_ids = batch
+
+        if len(batch) == 4:
+            source_ids, target_ids, _, _ = batch
+        else:
+            source_ids, target_ids = batch
         source_mask = source_ids.ne(tokenizer.pad_token_id)
         target_mask = target_ids.ne(tokenizer.pad_token_id)
 
@@ -214,18 +218,23 @@ def main():
         logger.info("  Batch num = %d", math.ceil(train_example_num / args.train_batch_size))
         logger.info("  Num epoch = %d", args.num_train_epochs)
 
-        breakpoint()
         dev_dataset = {}
         global_step, best_bleu_em, best_ppl = 0, -1, 1e6
         not_loss_dec_cnt, not_bleu_em_inc_cnt = 0, 0 if args.do_eval_bleu else 1e6
-
         for cur_epoch in range(args.start_epoch, int(args.num_train_epochs)):
             bar = tqdm(train_dataloader, total=len(train_dataloader), desc="Training")
             nb_tr_examples, nb_tr_steps, tr_loss = 0, 0, 0
             model.train()
             for step, batch in enumerate(bar):
                 batch = tuple(t.to(args.device) for t in batch)
-                source_ids, target_ids = batch
+                if args.task == 'finetune3':
+                    source_ids, target_ids, ast_ids, dfg_ids = batch
+                    ast_ids = torch.squeeze(ast_ids)
+                    dfg_ids = torch.squeeze(dfg_ids)
+                    ast_mask = ast_ids.ne(tokenizer.pad_token_id)
+                    dfg_mask = dfg_ids.ne(tokenizer.pad_token_id)
+                else:
+                    source_ids, target_ids = batch
                 source_mask = source_ids.ne(tokenizer.pad_token_id)
                 target_mask = target_ids.ne(tokenizer.pad_token_id)
 
@@ -237,11 +246,30 @@ def main():
                                     labels=target_ids, decoder_attention_mask=target_mask)
                     loss = outputs.loss
 
+                    if args.task == 'finetune3':
+                        ast_outputs = model(input_ids=ast_ids, attention_mask=ast_mask,
+                                    labels=target_ids, decoder_attention_mask=target_mask)
+                        ast_loss = ast_outputs.loss
+
+                        dfg_outputs = model(input_ids=dfg_ids, attention_mask=dfg_mask,
+                                    labels=target_ids, decoder_attention_mask=target_mask)
+                        dfg_loss = dfg_outputs.loss
+                
                 if args.n_gpu > 1:
                     loss = loss.mean()  # mean() to average on multi-gpu.
+                    if args.task == 'finetune3':
+                        ast_loss = loss.mean()
+                        dfg_loss = loss.mean()
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps
-                tr_loss += loss.item()
+                    if args.task == 'finetune3':
+                        ast_loss = ast_loss / args.gradient_accumulation_steps
+                        dfg_loss = dfg_loss / args.gradient_accumulation_steps
+                if args.task =='finetune3':
+                    tr_loss += args.code_weight*loss.item() + args.ast_weight*ast_loss.item() + args.dfg_weight*dfg_loss.item()
+                    loss = args.code_weight*loss + args.ast_weight*ast_loss + args.dfg_weight*dfg_loss
+                else:
+                    tr_loss += loss.item()
 
                 nb_tr_examples += source_ids.size(0)
                 nb_tr_steps += 1
