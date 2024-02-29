@@ -265,7 +265,7 @@ def preorder_traversal(node, include_leaf_value=False):
 
     # Recursively traverse the children in preorder
     for child in node.children:
-        result += preorder_traversal(child)
+        result += preorder_traversal(child, include_leaf_value)
     
     return result
 
