@@ -260,7 +260,7 @@ def preorder_traversal(node, include_leaf_value=False):
     result = ""
     type = str(node.type)
     result += type + ' '
-    if not node.children and node.text.decode('utf-8') != type and include_leaf_value:
+    if not node.children and node.text.decode('utf-8') != type and include_leaf_value and type != 'comment':
         result += '<' + node.text.decode('utf-8') + '> '
 
     # Recursively traverse the children in preorder

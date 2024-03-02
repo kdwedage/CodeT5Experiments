@@ -120,6 +120,10 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
     output_fn = os.path.join(args.res_dir, "test_{}.output".format(criteria))
     gold_fn = os.path.join(args.res_dir, "test_{}.gold".format(criteria))
     src_fn = os.path.join(args.res_dir, "test_{}.src".format(criteria))
+    if args.task == 'finetune3':
+        src_ast = os.path.join(args.res_dir, "test_{}.ast_src".format(criteria))
+        src_dfg = os.path.join(args.res_dir, "test_{}.dfg_src".format(criteria))
+        
 
     if args.task in ['defect']:
         target_dict = {0: 'false', 1: 'true'}
@@ -144,6 +148,11 @@ def eval_bleu_epoch(args, eval_data, eval_examples, model, tokenizer, split_tag,
                     f.write(str(gold.idx) + '\t' + pred_nl.strip() + '\n')
                     f1.write(str(gold.idx) + '\t' + gold.target.strip() + '\n')
                     f2.write(str(gold.idx) + '\t' + gold.source.strip() + '\n')
+
+                    if args.task == 'finetune3':
+                        with open(src_ast, 'a') as f3, open(src_dfg, 'a') as f4:
+                            f3.write(str(gold.idx) + '\t' + gold.ast.strip() + '\n')
+                            f4.write(str(gold.idx) + '\t' + gold.dfg.strip() + '\n')
                 else:
                     f.write(pred_nl.strip() + '\n')
                     f1.write(gold.target.strip() + '\n')
