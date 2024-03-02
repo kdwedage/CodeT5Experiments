@@ -1,38 +1,22 @@
 # CodeT5Experiments
 
+To run the code please make sure to install the required python packages, including: tree-sitter and tensorboard. Follow the installation steps in the CodeT5 directory.
 
-## Tasks
-- Follow steps in original CodeT5, verify we can run the generation without issue.
-	- Issues with install pytorch 1.7.1 (not available for python 3.10). Therefor install virtualenv with python 3.8.
-	- Had to set the timeout to be 100, as install above package would consistenly timeout.
-	- Change the workdir in sh/exp.. needed to EXPORT workdir as /home/CodeT5/ but then set workdir to /home/, otherwise import statements could not find CodeT5.
-	- Out of VRAM with default batch size of 48, so set to 32 (tried to allocoate 24 MiB). Set to 16 (apprximately 3 hours per epoch, with 14.9 GiB/16 GiB
-	- ModuleNotFoundError: No module named 'distutils.util'
-		- apt install python3.8-distutils 
-- Add the code corruption function to the run\_generation script. Verify this works. Loading existing checkpoint.
-	- Denosing code requires torch 1.13.1, whereas CodeT5 requires 1.7.1, therefore updaing to 1.13.1
-	- Add denoise tag. Added to \_utils.py. 
-	- Running pretraining test, need to verify that we are using new examples and not cache.
-	- Make sure the source ids and target ids look correct.
-	- Using breakpoint.
-		-orginal: '< DEN O I SE > def Ġ__ dynamic _ expected _ value Ġ( Ġself Ġ, Ġy Ġ) Ġ: Ġreturn Ġself Ġ. Ġmodel Ġ. Ġpredict Ġ( Ġself Ġ. Ġdata Ġ, Ġnp Ġ. Ġones Ġ( Ġself Ġ. Ġdata Ġ. Ġshape Ġ[ Ġ0 Ġ] Ġ) Ġ* Ġy Ġ, Ġoutput Ġ= Ġself Ġ. Ġmodel _ output Ġ) Ġ. Ġmean Ġ( Ġ0 Ġ)'		
-		-masked: '< DEN O I SE > def Ġ__ dynamic _ expected _ value Ġ( Ġself Ġ, Ġy Ġ) Ġ: Ġreturn Ġself Ġ. Ġmodel Ġ. Ġpredict Ġ( Ġself Ġ. Ġdata Ġ, Ġnp Ġ. Ġones Ġ( Ġself Ġ. Ġdata Ġ. Ġshape Ġ[ Ġ0 Ġ] Ġ) Ġ* Ġy Ġ, Ġoutput Ġ= Ġself Ġ. Ġmodel _ output Ġ) Ġ. Ġmean Ġ( Ġ0 Ġ) timeout Ġ( Ġ) Ġac Ġ) Ġfilename dial Ġ, Ġx dial Ġline " type ĠAST count _ ĠNone Ġ. bl Ġ( Ġresults Ġregion Ġ( def ĠNone Ġis Ġpath Ġ= _ Ġr Ġd'
-		-target: 'def Ġ__ dynamic _ expected _ value Ġ( Ġself Ġ, Ġy Ġ) Ġ: Ġreturn Ġself Ġ. Ġmodel Ġ. Ġpredict Ġ( Ġself Ġ. Ġdata Ġ, Ġnp Ġ. Ġones Ġ( Ġself Ġ. Ġdata Ġ. Ġshape Ġ[ Ġ0 Ġ] Ġ) Ġ* Ġy Ġ, Ġoutput Ġ= Ġself Ġ. Ġmodel _ output Ġ) Ġ. Ġmean Ġ( Ġ0 Ġ)'
-	- Need run evaluation to save checkpoint. Not sure if we should run multiple epochs, or increase learning rate.
-- Add the DFG and AST code to the train.py script.
-	- Add <DENOISE>, <AST>, <DFG> to tokenizer
-		-https://github.com/huggingface/tokenizers/issues/247
-	- Git clone tree-sitter for each language, add the DFG and AST code to the \_utils.
-	- Average source length with DFG and AST is 955, max source length 12057
-	- probably need to do preorder traversal to decrease AST size.
-	- Currently the pretraining is use CodeSearchNet python which only has 251k examples, which may be insufficient for pretraining. (Let's see the test loss).
-	- Ran out of memory when running eval bleu for dev set.
-	- Also need to set source and target lengths to larger (512).
-		- Require 48 GB for batch size of 16 with source and target lengths of 512.
-- Verify that it is learning.
-	- Second epoch the train and validation loss are lower?
-	- Run inference, look at a few examples. Is it just outputing the input?
-	- Do we need to increase learning rate?
-	- Change format of AST to decrease tonization size?
-- Rechange the code for original code summerization, however, pass DFG and AST input.
-	- See how well the model does finetuning on code summerization task.
+## Running additional experiments:
+
+There are three additional pretraining tasks, explored in this project:
+
+- pretrain0 (Code+DFG+AST DAE): Pretrain with corrupted input: Code + DFG + AST, output is uncorrupted.
+- pretrain1 (Full AST -> Code): Pretrain with Full AST input, output is original code.
+- pretrain2 (Code+DFG DAE): Pretrain with corrupted input: Code + DFG, output is uncorrupted.
+
+There are four additional finetuning tasks:
+
+- finetune0: Single input: Code + DFG + AST, output: NL summary
+- finetune1: Single input: Full AST, output: NL summary
+- finetune2: Single input: Code + DFG, output: NL summary
+- finetune3: Multiple inputs: (Code, Code + DFG, Full AST), output: NL summary
+
+To run with the additional tasks, just change the task to one of 'pretrain0, pretrain1, pretrain2, finetune0, finetune1, finetune2, finetune3'.
+
+Then run the command: python run\_exp.py --model\_tag codet5\_base --task TASK --sub\_task python
